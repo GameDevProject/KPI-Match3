@@ -1,11 +1,13 @@
 __all__ = ['GameModel']
 
 import pyglet
+import os.path
+import sys
+from os.path import join, isdir, basename
 from random import choice, randint
 from glob import glob
-from cocos.director import director
 from cocos.sprite import Sprite
-from cocos.actions import *
+from cocos import *
 from status import status
 
 CELL_WIDTH, CELL_HEIGHT = 100, 100
@@ -19,16 +21,25 @@ IMPLODING_TILES = 4
 DROPPING_TILES = 5
 GAME_OVER = 6
 
+
 class GameModel(pyglet.event.EventDispatcher):
     def __init__(self):
         super(GameModel, self).__init__()
         self.tile_grid = {}  # Dict emulated sparse matrix, key: tuple(x,y), value : tile_type
-        self.imploding_tiles = []  # List of tile sprites being imploded, used during IMPLODING_TILES
+        self.imploding_tiles = []  # List of tile sprites being imploded, used for IMPLODING_TILES
         self.dropping_tiles = []  # List of tile sprites being dropped, used during DROPPING_TILES
         self.swap_start_pos = None  # Position of the first tile clicked for swapping
         self.swap_end_pos = None  # Position of the second tile clicked for swapping
         # the replace is for windows compatibilty
-        self.available_tiles = [s.replace('\\', '/') for s in glob('images/*.png')]
+        script_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
+        os.chdir(script_dir)
+        if isdir('images'):
+            image_base_path = join(script_dir, 'images')
+        else:
+            image_base_path = join(sys.prefix, 'share', 'match3cocos2d', 'images')
+        pyglet.resource.path = [image_base_path]
+        pyglet.resource.reindex()
+        self.available_tiles = [basename(s) for s in glob(join(image_base_path, '*.png'))]
         self.game_state = WAITING_PLAYER_MOVEMENT
         self.objectives = []
         self.on_game_over_pause = 0
@@ -48,7 +59,7 @@ class GameModel(pyglet.event.EventDispatcher):
 
     def time_tick(self, delta):
         self.play_time -= 1
-        self.dispatch_event("on_update_time", self.play_time/float(self.max_play_time))
+        self.dispatch_event("on_update_time", self.play_time / float(self.max_play_time))
         if self.play_time == 0:
             pyglet.clock.unschedule(self.time_tick)
             self.game_state = GAME_OVER
@@ -83,7 +94,7 @@ class GameModel(pyglet.event.EventDispatcher):
             tile_grid = {}
 
         # Build the sprites based on the assigned tile type
-        for key, value in tile_grid.iteritems():
+        for key, value in tile_grid.items():
             tile_type, sprite = value
             sprite = self.tile_sprite(tile_type, self.to_display(key))
             tile_grid[key] = tile_type, sprite
@@ -105,23 +116,22 @@ class GameModel(pyglet.event.EventDispatcher):
             tile_type, sprite = self.tile_grid[x, y]
             self.tile_grid[x, y] = None
             self.imploding_tiles.append(sprite)  # Track tiles being imploded
-            sprite.do(ScaleTo(0, 0.5) | RotateTo(180, 0.5) + CallFuncS(self.on_tile_remove))  # Implode animation
+            # Implode animation
+            sprite.do(ScaleTo(0, 0.5) | RotateTo(180, 0.5) + CallFuncS(self.on_tile_remove))
             implode_count[tile_type] = implode_count.get(tile_type, 0) + 1
         # Decrease counter for tiles matching objectives
         for elem in self.objectives:
             if elem[0] in implode_count:
                 Scale = ScaleBy(1.5, 0.2)
-                elem[2] = max(0, elem[2]-implode_count[elem[0]])
-                elem[1].do((Scale + Reverse(Scale))*3)
+                elem[2] = max(0, elem[2] - implode_count[elem[0]])
+                elem[1].do((Scale + Reverse(Scale)) * 3)
         # Remove objectives already completed
         self.objectives = [elem for elem in self.objectives if elem[2] > 0]
         if len(self.imploding_tiles) > 0:
             self.game_state = IMPLODING_TILES  # Wait for the implosion animation to finish
             pyglet.clock.unschedule(self.time_tick)
-            print "Removing time_tick"
         else:
             self.game_state = WAITING_PLAYER_MOVEMENT
-            print "Adding time tick"
             pyglet.clock.schedule_interval(self.time_tick, 1)
         return self.imploding_tiles
 
@@ -149,8 +159,8 @@ class GameModel(pyglet.event.EventDispatcher):
                 sprite = self.tile_sprite(tile_type, self.to_display((x, y + n + 1)))
                 tile_grid[x, y - gap_count + n + 1] = tile_type, sprite
                 sprite.do(
-                    MoveTo(self.to_display((x, y - gap_count + n + 1)), 0.3 * gap_count) + CallFuncS(
-                        self.on_drop_completed))
+                    MoveTo(self.to_display((x, y - gap_count + n + 1)), 0.3 * gap_count) +
+                    CallFuncS(self.on_drop_completed))
                 self.view.add(sprite)
                 self.dropping_tiles.append(sprite)
 
@@ -170,10 +180,10 @@ class GameModel(pyglet.event.EventDispatcher):
                 pyglet.clock.unschedule(self.time_tick)
                 self.dispatch_event("on_level_completed")
 
-    def set_controller( self, controller):
+    def set_controller(self, controller):
         self.controller = controller
 
-    def set_view( self, view):
+    def set_view(self, view):
         self.view = view
 
     def tile_sprite(self, tile_type, pos):
@@ -196,7 +206,8 @@ class GameModel(pyglet.event.EventDispatcher):
             tile_type, sprite = self.tile_grid[self.swap_start_pos]
             sprite.do(MoveTo(self.to_display(self.swap_end_pos), 0.4))
             tile_type, sprite = self.tile_grid[self.swap_end_pos]
-            sprite.do(MoveTo(self.to_display(self.swap_start_pos), 0.4) + CallFunc(self.on_tiles_swap_back_completed))
+            sprite.do(MoveTo(self.to_display(self.swap_start_pos), 0.4) +
+                CallFunc(self.on_tiles_swap_back_completed))
 
             # Revert on the grid
             self.swap_elements(self.swap_start_pos, self.swap_end_pos)
@@ -205,16 +216,18 @@ class GameModel(pyglet.event.EventDispatcher):
     def on_tiles_swap_back_completed(self):
         self.game_state = WAITING_PLAYER_MOVEMENT
 
-    def to_display(self, (row, col)):
+    def to_display(self, row_col):
         """
         :param row:
         :param col:
-        :return: (x, y) from display corresponding coordinates from the bi-dimensional ( row, col) array position
+        :return: (x, y) from display coordinates from the bi-dimensional ( row, col) array position
         """
+        row, col = row_col
         return CELL_WIDTH / 2 + row * CELL_WIDTH, CELL_HEIGHT / 2 + col * CELL_HEIGHT
 
-    def to_model_pos(self, (view_x, view_y)):
-        return view_x / CELL_WIDTH, view_y / CELL_HEIGHT
+    def to_model_pos(self, view_x_y):
+        view_x, view_y = view_x_y
+        return int(view_x / CELL_WIDTH), int(view_y / CELL_HEIGHT)
 
     def get_same_type_lines(self, tile_grid, min_count=3):
         """
@@ -231,7 +244,8 @@ class GameModel(pyglet.event.EventDispatcher):
                 tile_type, sprite = tile_grid[x, y]
                 if last_tile_type == tile_type:
                     same_type_list.append((x, y))
-                if tile_type != last_tile_type or y == ROWS_COUNT - 1:  # Line end because type changed or edge reached
+                # Line end because type changed or edge reached
+                if tile_type != last_tile_type or y == ROWS_COUNT - 1:
                     if len(same_type_list) >= min_count:
                         all_line_members.extend(same_type_list)
                     last_tile_type = tile_type
@@ -245,7 +259,8 @@ class GameModel(pyglet.event.EventDispatcher):
                 tile_type, sprite = tile_grid[x, y]
                 if last_tile_type == tile_type:
                     same_type_list.append((x, y))
-                if tile_type != last_tile_type or x == COLS_COUNT - 1:  # Line end because of type change or edge reached
+                # Line end because of type change or edge reached
+                if tile_type != last_tile_type or x == COLS_COUNT - 1:
                     if len(same_type_list) >= min_count:
                         all_line_members.extend(same_type_list)
                     last_tile_type = tile_type
@@ -277,7 +292,8 @@ class GameModel(pyglet.event.EventDispatcher):
         tile_type, sprite = self.tile_grid[self.swap_start_pos]
         sprite.do(MoveTo(self.to_display(self.swap_end_pos), 0.4))
         tile_type, sprite = self.tile_grid[self.swap_end_pos]
-        sprite.do(MoveTo(self.to_display(self.swap_start_pos), 0.4) + CallFunc(self.on_tiles_swap_completed))
+        sprite.do(MoveTo(self.to_display(self.swap_start_pos), 0.4) +
+            CallFunc(self.on_tiles_swap_completed))
 
         # Swap elements at the board data grid
         self.swap_elements(self.swap_start_pos, self.swap_end_pos)
@@ -291,7 +307,8 @@ class GameModel(pyglet.event.EventDispatcher):
             line_str = ''
             for x in range(COLS_COUNT):
                 line_str += str(self.tile_grid[x, y][0])
-            print line_str
+            print(line_str)
+
 
 GameModel.register_event_type('on_update_objectives')
 GameModel.register_event_type('on_update_time')
