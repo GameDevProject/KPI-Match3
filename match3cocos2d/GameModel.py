@@ -1,3 +1,5 @@
+from cocos.actions import ScaleTo, RotateTo, CallFuncS, ScaleBy, Reverse, MoveTo, CallFunc
+
 __all__ = ['GameModel']
 
 import pyglet
@@ -8,7 +10,7 @@ from random import choice, randint
 from glob import glob
 from cocos.sprite import Sprite
 from cocos import *
-from status import status
+from match3cocos2d.my_status import status
 
 CELL_WIDTH, CELL_HEIGHT = 100, 100
 ROWS_COUNT, COLS_COUNT = 6, 8
@@ -48,7 +50,7 @@ class GameModel(pyglet.event.EventDispatcher):
         self.set_next_level()
 
     def set_next_level(self):
-        self.play_time = self.max_play_time = 60
+        self.play_time = self.max_play_time = 120
         for elem in self.imploding_tiles + self.dropping_tiles:
             self.view.remove(elem)
         self.on_game_over_pause = 0
@@ -70,7 +72,7 @@ class GameModel(pyglet.event.EventDispatcher):
         while len(objectives) < 3:
             tile_type = choice(self.available_tiles)
             sprite = self.tile_sprite(tile_type, (0, 0))
-            count = randint(1, 20)
+            count = randint(1, 10)
             if tile_type not in [x[0] for x in objectives]:
                 objectives.append([tile_type, sprite, count])
 

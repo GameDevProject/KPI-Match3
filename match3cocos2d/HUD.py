@@ -2,8 +2,8 @@ from cocos.layer import *
 
 from cocos.text import *
 from cocos.actions import *
-from ProgressBar import ProgressBar
-from status import status
+from match3cocos2d.ProgressBar import ProgressBar
+from match3cocos2d.my_status import status
 
 
 class BackgroundLayer(Layer):

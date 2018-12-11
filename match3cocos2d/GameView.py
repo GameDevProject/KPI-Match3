@@ -1,9 +1,9 @@
 import cocos
 from cocos.director import director
 from cocos.scene import Scene
-from HUD import HUD
-from GameModel import GameModel
-from GameController import GameController
+from match3cocos2d.HUD import HUD
+from match3cocos2d.GameModel import GameModel
+from match3cocos2d.GameController import GameController
 
 __all__ = ['get_newgame']
 

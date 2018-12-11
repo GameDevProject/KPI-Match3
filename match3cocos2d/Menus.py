@@ -36,10 +36,10 @@ class MainMenu(Menu):
         self.create_menu(items, shake(), shake_back())
 
     def on_new_game(self):
-        import GameView
+        import match3cocos2d.GameView
 
         director.push(FlipAngular3DTransition(
-            GameView.get_newgame(), 1.5))
+            match3cocos2d.GameView.get_newgame(), 1.5))
 
     def on_options(self):
         self.parent.switch_to(1)
