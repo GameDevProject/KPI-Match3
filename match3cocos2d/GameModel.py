@@ -56,6 +56,7 @@ class GameModel(pyglet.event.EventDispatcher):
         self.on_game_over_pause = 0
         self.fill_with_random_tiles()
         self.set_objectives()
+        self.dispatch_event("on_update_objectives")
         pyglet.clock.unschedule(self.time_tick)
         pyglet.clock.schedule_interval(self.time_tick, 1)
 
@@ -272,8 +273,13 @@ class GameModel(pyglet.event.EventDispatcher):
         all_line_members = list(set(all_line_members))
         return all_line_members
 
+    @staticmethod
+    def is_valid_position(x, y):
+        return 0 < y < ROWS_COUNT * CELL_HEIGHT and COLS_COUNT * CELL_WIDTH > x > 0
+
     def on_mouse_press(self, x, y):
-        if self.game_state == WAITING_PLAYER_MOVEMENT:
+        if self.game_state == WAITING_PLAYER_MOVEMENT and self.is_valid_position(x, y):
+            print(x, y)
             self.swap_start_pos = self.to_model_pos((x, y))
             self.game_state = PLAYER_DOING_MOVEMENT
 
@@ -287,7 +293,7 @@ class GameModel(pyglet.event.EventDispatcher):
         distance = abs(new_x - start_x) + abs(new_y - start_y)  # horizontal + vertical grid steps
 
         # Ignore movement if not at 1 step away from the initial position
-        if new_x < 0 or new_y < 0 or distance != 1:
+        if new_x < 0 or new_y < 0 or distance != 1 or not self.is_valid_position(x, y):
             return
 
         # Start swap animation for both objects
