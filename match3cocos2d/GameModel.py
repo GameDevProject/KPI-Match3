@@ -72,7 +72,7 @@ class GameModel(pyglet.event.EventDispatcher):
         while len(objectives) < 3:
             tile_type = choice(self.available_tiles)
             sprite = self.tile_sprite(tile_type, (0, 0))
-            count = randint(1, 10)
+            count = randint(1, 3)
             if tile_type not in [x[0] for x in objectives]:
                 objectives.append([tile_type, sprite, count])
 
@@ -133,6 +133,9 @@ class GameModel(pyglet.event.EventDispatcher):
             self.game_state = IMPLODING_TILES  # Wait for the implosion animation to finish
             pyglet.clock.unschedule(self.time_tick)
         else:
+            if len(self.objectives) == 0:
+                pyglet.clock.unschedule(self.time_tick)
+                self.dispatch_event("on_level_completed")
             self.game_state = WAITING_PLAYER_MOVEMENT
             pyglet.clock.schedule_interval(self.time_tick, 1)
         return self.imploding_tiles
@@ -178,9 +181,6 @@ class GameModel(pyglet.event.EventDispatcher):
         if len(self.imploding_tiles) == 0:  # Implosion complete, drop tiles to fill gaps
             self.dispatch_event("on_update_objectives")
             self.drop_groundless_tiles()
-            if len(self.objectives) == 0:
-                pyglet.clock.unschedule(self.time_tick)
-                self.dispatch_event("on_level_completed")
 
     def set_controller(self, controller):
         self.controller = controller
