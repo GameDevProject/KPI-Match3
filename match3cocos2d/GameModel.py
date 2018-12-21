@@ -1,3 +1,5 @@
+import random
+
 from cocos.actions import ScaleTo, RotateTo, CallFuncS, ScaleBy, Reverse, MoveTo, CallFunc
 
 __all__ = ['GameModel']
@@ -11,7 +13,7 @@ from glob import glob
 from cocos.sprite import Sprite
 from cocos import *
 from match3cocos2d.my_status import status
-
+from match3cocos2d.db_models import *
 CELL_WIDTH, CELL_HEIGHT = 100, 100
 ROWS_COUNT, COLS_COUNT = 6, 8
 
@@ -41,7 +43,14 @@ class GameModel(pyglet.event.EventDispatcher):
             image_base_path = join(sys.prefix, 'share', 'match3cocos2d', 'images')
         pyglet.resource.path = [image_base_path]
         pyglet.resource.reindex()
-        self.available_tiles = [basename(s) for s in glob(join(image_base_path, '*.png'))]
+        session = Session()
+        self.player = session.query(User).first()
+        session.close()
+        self.level = 1
+
+        # self.available_tiles = [basename(s) for s in glob(join(image_base_path, '*.png'))]
+        self.available_tiles = []
+        print(self.available_tiles)
         self.game_state = WAITING_PLAYER_MOVEMENT
         self.objectives = []
         self.on_game_over_pause = 0
@@ -50,6 +59,13 @@ class GameModel(pyglet.event.EventDispatcher):
         self.set_next_level()
 
     def set_next_level(self):
+        session = Session()
+        self.level = session.query(Level).filter_by(
+            id=self.player.current_level).first()
+        tiles = session.query(Tile).filter_by(level=self.level.id).all()
+        self.available_tiles = [tile.location for tile in tiles]
+        session.close()
+
         self.play_time = self.max_play_time = 120
         for elem in self.imploding_tiles + self.dropping_tiles:
             self.view.remove(elem)
@@ -69,15 +85,16 @@ class GameModel(pyglet.event.EventDispatcher):
             self.dispatch_event("on_game_over")
 
     def set_objectives(self):
-        objectives = []
-        while len(objectives) < 3:
-            tile_type = choice(self.available_tiles)
-            sprite = self.tile_sprite(tile_type, (0, 0))
-            count = randint(1, 3)
-            if tile_type not in [x[0] for x in objectives]:
-                objectives.append([tile_type, sprite, count])
+        session = Session()
+        objectives = session.query(Objective).filter_by(
+            level=self.level.id).all()
+        level_objectives = []
+        for o in objectives:
+            tile = session.query(Tile).filter_by(id=o.tile).first()
+            sprite = self.tile_sprite(tile.location, (0, 0))
+            level_objectives.append([tile.location, sprite, o.number])
 
-        self.objectives = objectives
+        self.objectives = level_objectives
 
     def fill_with_random_tiles(self):
         """
@@ -117,10 +134,31 @@ class GameModel(pyglet.event.EventDispatcher):
         implode_count = {}
         for x, y in self.get_same_type_lines(self.tile_grid):
             tile_type, sprite = self.tile_grid[x, y]
+            session = Session()
+            tile = session.query(Tile).filter_by(location=tile_type).first()
+
             self.tile_grid[x, y] = None
             self.imploding_tiles.append(sprite)  # Track tiles being imploded
+            if tile.implode:
+                name_to_implode = session.query(Tile).filter_by(id=tile.implode).first().location
+                may_be_imploded = [t for t in self.tile_grid.keys()
+                                   if self.tile_grid[t] and self.tile_grid[t][0] == name_to_implode]
+                if may_be_imploded:
+                    tile_to_implode = random.choice(may_be_imploded)
+                    tile_sprite = self.tile_grid[tile_to_implode][1]
+                    self.tile_grid[tile_to_implode] = None
+                    self.imploding_tiles.append(tile_sprite)
+                    tile_sprite.do(
+                        ScaleTo(0, 0.5) | RotateTo(180, 0.5) + CallFuncS(
+                                self.on_tile_remove))
+
+            session.close()
             # Implode animation
             sprite.do(ScaleTo(0, 0.5) | RotateTo(180, 0.5) + CallFuncS(self.on_tile_remove))
+
+            if tile.can_add_objectives:
+                o = random.choice(self.objectives)
+                o[2] += 1
             implode_count[tile_type] = implode_count.get(tile_type, 0) + 1
         # Decrease counter for tiles matching objectives
         for elem in self.objectives:
