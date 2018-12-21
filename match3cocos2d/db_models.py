@@ -11,6 +11,7 @@ class Level(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String)
     description = Column(String)
+    background = Column(String)
 
 
 class Tile(Base):

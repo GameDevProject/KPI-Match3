@@ -5,6 +5,8 @@ import os.path
 from cocos import director
 from cocos.scene import Scene
 from cocos.layer import MultiplexLayer
+
+from match3cocos2d.HUD import BackgroundLayer
 from match3cocos2d.Menus import MainMenu
 
 
@@ -15,8 +17,9 @@ def main():
     pyglet.resource.reindex()
 
     director.director.init(width=800, height=650, caption="Match 3")
-
+    # bg_layer = BackgroundLayer()
     scene = Scene()
+    # scene.add(bg_layer, z=0)
     scene.add(MultiplexLayer(
         MainMenu()
     ),

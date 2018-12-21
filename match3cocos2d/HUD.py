@@ -1,3 +1,4 @@
+import cocos
 from cocos.layer import *
 
 from cocos.text import *
@@ -7,12 +8,20 @@ from match3cocos2d.my_status import status
 
 
 class BackgroundLayer(Layer):
-    def __init__(self):
+    def __init__(self, image):
         super(BackgroundLayer, self).__init__()
-        # self.img = pyglet.resource.image('background.png')
+        # self.img = pyglet.resource.image('bg.jpg')
+        self.bg = cocos.sprite.Sprite(image)
+        self.bg.position = (400, 300)
+        # print(self.img)
+        self.add(self.bg)
 
-    def draw(self):
-        pass
+    def set_image(self, image):
+        print("set image")
+        self.remove(self.bg)
+        self.bg = cocos.sprite.Sprite(image)
+        self.bg.position = (400, 300)
+        self.add(self.bg)
 
 
 class ScoreLayer(Layer):
@@ -115,6 +124,8 @@ class MessageLayer(Layer):
 class HUD(Layer):
     def __init__(self):
         super(HUD, self).__init__()
+        # self.backgroung_layer = BackgroundLayer()
+        # self.add(self.backgroung_layer, z=-7)
         self.score_layer = ScoreLayer()
         self.add(self.score_layer)
         self.add(MessageLayer(), name='msg')

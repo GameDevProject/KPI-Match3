@@ -46,11 +46,11 @@ class GameModel(pyglet.event.EventDispatcher):
         session = Session()
         self.player = session.query(User).first()
         session.close()
-        self.level = 1
+        self.level = None
 
         # self.available_tiles = [basename(s) for s in glob(join(image_base_path, '*.png'))]
         self.available_tiles = []
-        print(self.available_tiles)
+
         self.game_state = WAITING_PLAYER_MOVEMENT
         self.objectives = []
         self.on_game_over_pause = 0
@@ -156,9 +156,10 @@ class GameModel(pyglet.event.EventDispatcher):
             # Implode animation
             sprite.do(ScaleTo(0, 0.5) | RotateTo(180, 0.5) + CallFuncS(self.on_tile_remove))
 
-            if tile.can_add_objectives:
+            if tile.can_add_objectives and self.objectives:
                 o = random.choice(self.objectives)
-                o[2] += 1
+                if o[2]:
+                    o[2] += 1
             implode_count[tile_type] = implode_count.get(tile_type, 0) + 1
         # Decrease counter for tiles matching objectives
         for elem in self.objectives:
@@ -174,6 +175,10 @@ class GameModel(pyglet.event.EventDispatcher):
         else:
             if len(self.objectives) == 0:
                 pyglet.clock.unschedule(self.time_tick)
+                session = Session()
+                self.player.current_level += 1
+                session.commit()
+                session.close()
                 self.dispatch_event("on_level_completed")
             self.game_state = WAITING_PLAYER_MOVEMENT
             pyglet.clock.schedule_interval(self.time_tick, 1)
@@ -317,7 +322,7 @@ class GameModel(pyglet.event.EventDispatcher):
 
     def on_mouse_press(self, x, y):
         if self.game_state == WAITING_PLAYER_MOVEMENT and self.is_valid_position(x, y):
-            print(x, y)
+
             self.swap_start_pos = self.to_model_pos((x, y))
             self.game_state = PLAYER_DOING_MOVEMENT
 
