@@ -1,2 +1,3 @@
+sqlalchemy
 pyglet
 cocos2d
