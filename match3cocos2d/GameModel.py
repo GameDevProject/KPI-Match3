@@ -64,6 +64,7 @@ class GameModel(pyglet.event.EventDispatcher):
         self.level = session.query(Level).filter_by(
             id=self.player.current_level).first()
         if not self.level:
+            self.game_state = GAME_OVER
             self.dispatch_event("on_game_win")
             return
 
@@ -84,7 +85,7 @@ class GameModel(pyglet.event.EventDispatcher):
     def time_tick(self, delta):
         self.play_time -= 1
         self.dispatch_event("on_update_time", self.play_time / float(self.max_play_time))
-        if self.play_time == 0:
+        if self.play_time == 0 and self.game_state != GAME_OVER:
             pyglet.clock.unschedule(self.time_tick)
             self.game_state = GAME_OVER
             self.dispatch_event("on_game_over")
@@ -138,6 +139,8 @@ class GameModel(pyglet.event.EventDispatcher):
         """
         implode_count = {}
         for x, y in self.get_same_type_lines(self.tile_grid):
+            if not self.tile_grid[x, y]:
+                continue
             tile_type, sprite = self.tile_grid[x, y]
             session = Session()
             tile = session.query(Tile).filter_by(location=tile_type).first()
