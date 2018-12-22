@@ -1,3 +1,5 @@
+import time
+
 import cocos
 from cocos.director import director
 from cocos.scene import Scene
@@ -21,10 +23,12 @@ class GameView(cocos.layer.ColorLayer):
         self.model.push_handlers(self.on_update_objectives,
                                 self.on_update_time,
                                 self.on_game_over,
+                                self.on_game_win,
+                                self.on_level_start,
                                 self.on_level_completed)
         self.model.start()
         self.hud.set_objectives(self.model.objectives)
-        self.hud.show_message('GET READY')
+        # self.hud.show_message('GET READY')
 
     def on_update_objectives(self):
         self.hud.set_objectives(self.model.objectives)
@@ -33,16 +37,32 @@ class GameView(cocos.layer.ColorLayer):
         self.hud.update_time(time_percent)
 
     def on_game_over(self):
-        self.hud.show_message('GAME OVER', msg_duration=3, callback=lambda: director.pop())
+        self.hud.show_message('Вы проиграли', msg_duration=3, callback=lambda: director.pop())
+
+    def on_game_win(self):
+        self.hud.show_message('Вы прошли игру', msg_duration=3, callback=lambda: director.pop())
+
+    def on_level_start(self):
+        session = Session()
+        # level = session.query(Level).filter_by(
+        #     id=self.model.level.id + 1).first()
+        self.bg_layer.set_image(self.model.level.background)
+        session.close()
+        self.hud.show_message(self.model.level.name, msg_duration=3, callback=lambda: self.show_description())
+        # self.hud.show_message(self.model.level.description, msg_duration=3)
+
+    def show_description(self):
+        if self.model.level.description:
+            if len(self.model.level.description) > 30:
+                self.hud.show_message(self.model.level.description, msg_duration=3, font=13)
+            else:
+                self.hud.show_message(self.model.level.description, msg_duration=3)
+
 
     def on_level_completed(self):
-        session = Session()
-        level = session.query(Level).filter_by(id=self.model.level.id + 1).first()
-        self.bg_layer.set_image(level.background)
-        session.close()
-        self.hud.show_message('LEVEL COMPLETED', msg_duration=3,
-            callback=lambda: self.model.set_next_level())
 
+        self.hud.show_message('Уровень пройден!', msg_duration=3,
+            callback=lambda: self.model.set_next_level())
 
 
 def get_newgame():
@@ -51,7 +71,7 @@ def get_newgame():
     controller = GameController(model)
     # view
     hud = HUD()
-    bg_layer = BackgroundLayer('bg1.jpg')
+    bg_layer = BackgroundLayer('backgrounds/bg1.jpg')
     view = GameView(model, hud, bg_layer)
 
     # set controller in model

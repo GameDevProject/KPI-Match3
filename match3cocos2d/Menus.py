@@ -3,10 +3,12 @@ from cocos.director import director
 from cocos.scenes.transitions import *
 import pyglet
 
+from match3cocos2d.db_models import Session, User
+
 
 class MainMenu(Menu):
     def __init__(self):
-        super(MainMenu, self).__init__('Match3')
+        super(MainMenu, self).__init__('StudentDays')
 
         # you can override the font that will be used for the title and the items
         # you can also override the font size and the colors. see menu.py for
@@ -28,21 +30,29 @@ class MainMenu(Menu):
 
         items = []
 
-        items.append(MenuItem('New Game', self.on_new_game))
-        # items.append( MenuItem('Options', self.on_options) )
+        items.append(MenuItem('Новая игра', self.on_new_game))
+        items.append( MenuItem('Продолжить', self.on_continue))
         # items.append( MenuItem('Scores', self.on_scores) )
-        items.append(MenuItem('Quit', self.on_quit))
+        items.append(MenuItem('Выход', self.on_quit))
 
         self.create_menu(items, shake(), shake_back())
 
     def on_new_game(self):
+        session = Session()
+        player = session.query(User).first()
+        player.current_level = 1
+        session.commit()
+        session.close()
         import match3cocos2d.GameView
 
         director.push(FlipAngular3DTransition(
             match3cocos2d.GameView.get_newgame(), 1.5))
 
-    def on_options(self):
-        self.parent.switch_to(1)
+    def on_continue(self):
+        import match3cocos2d.GameView
+
+        director.push(FlipAngular3DTransition(
+            match3cocos2d.GameView.get_newgame(), 1.5))
 
     def on_scores(self):
         self.parent.switch_to(2)

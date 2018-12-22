@@ -97,11 +97,11 @@ class ScoreLayer(Layer):
 
 
 class MessageLayer(Layer):
-    def show_message(self, msg, callback=None, msg_duration=1):
+    def show_message(self, msg, callback=None, msg_duration=1, font=22):
         w, h = director.get_window_size()
 
         self.msg = Label(msg,
-                         font_size=52,
+                         font_size=font,
                          font_name='Edit Undo Line BRK',
                          anchor_y='center',
                          anchor_x='center')
@@ -130,8 +130,8 @@ class HUD(Layer):
         self.add(self.score_layer)
         self.add(MessageLayer(), name='msg')
 
-    def show_message(self, msg, callback=None, msg_duration=1):
-        self.get('msg').show_message(msg, callback, msg_duration)
+    def show_message(self, msg, callback=None, msg_duration=1, font=22):
+        self.get('msg').show_message(msg, callback, msg_duration, font)
 
     def set_objectives(self, objectives):
         self.score_layer.set_objectives(objectives)

@@ -60,12 +60,17 @@ class GameModel(pyglet.event.EventDispatcher):
 
     def set_next_level(self):
         session = Session()
+        self.player = session.query(User).first()
         self.level = session.query(Level).filter_by(
             id=self.player.current_level).first()
+        if not self.level:
+            self.dispatch_event("on_game_win")
+            return
+
         tiles = session.query(Tile).filter_by(level=self.level.id).all()
         self.available_tiles = [tile.location for tile in tiles]
         session.close()
-
+        self.dispatch_event("on_level_start")
         self.play_time = self.max_play_time = 120
         for elem in self.imploding_tiles + self.dropping_tiles:
             self.view.remove(elem)
@@ -176,7 +181,9 @@ class GameModel(pyglet.event.EventDispatcher):
             if len(self.objectives) == 0:
                 pyglet.clock.unschedule(self.time_tick)
                 session = Session()
-                self.player.current_level += 1
+                player = session.query(User).first()
+                player.current_level += 1
+                # session.add(self.player)
                 session.commit()
                 session.close()
                 self.dispatch_event("on_level_completed")
@@ -364,4 +371,6 @@ class GameModel(pyglet.event.EventDispatcher):
 GameModel.register_event_type('on_update_objectives')
 GameModel.register_event_type('on_update_time')
 GameModel.register_event_type('on_game_over')
+GameModel.register_event_type('on_game_win')
+GameModel.register_event_type('on_level_start')
 GameModel.register_event_type('on_level_completed')
