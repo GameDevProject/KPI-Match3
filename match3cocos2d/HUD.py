@@ -105,7 +105,7 @@ class MessageLayer(Layer):
                          font_name='Edit Undo Line BRK',
                          anchor_y='center',
                          anchor_x='center')
-        self.msg.position = (w // 2.0, h)
+        self.msg.position = (w // 2.0, h - 20)
 
         self.add(self.msg)
 

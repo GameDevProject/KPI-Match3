@@ -53,7 +53,7 @@ class GameView(cocos.layer.ColorLayer):
 
     def show_description(self):
         if self.model.level.description:
-            if len(self.model.level.description) > 30:
+            if len(self.model.level.description) > 50:
                 self.hud.show_message(self.model.level.description, msg_duration=3, font=13)
             else:
                 self.hud.show_message(self.model.level.description, msg_duration=3)
